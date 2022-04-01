@@ -15,9 +15,9 @@ def server_static(filename):
 @jinja2_view('home.html')
 def hola():
     cnx = sqlite3.connect(BASE_DATOS)
-    consulta = """SELECT p.id, p.nombre,p.apelllidos ,p.dni ,to2.descripcion 
+    consulta = """SELECT p.id, p.nombre,p.apelllidos ,p.dni ,to2.descripcion,tn.descripcion 
                 from persona p left join T_ocupacion to2 
-                on p.id_ocupacion =to2 .id"""
+                on p.id_ocupacion =to2.id left join T_numero tn on tn.id=p.id_numero """
     cursor = cnx.execute(consulta)
     filas = cursor.fetchall()
     cnx.close()
@@ -27,20 +27,44 @@ def hola():
 @route('/editar/<id:int>')
 @jinja2_view('formulario.html')
 def mi_form(id=None):
+    # Ocupaciones
     cnx = sqlite3.connect(BASE_DATOS)
     consulta = "select * from T_ocupacion"
     cursor = cnx.execute(consulta)
     ocupaciones = cursor.fetchall()
 
-    if id is None:
-        return {'ocupaciones':ocupaciones}
+    #Números
+    consulta = "select * from T_numero"
+    cursor = cnx.execute(consulta)
+    numeros = cursor.fetchall()
+
+    #Vehículos
+    consulta = "select * from T_vehiculo"
+    cursor = cnx.execute(consulta)
+    vehiculos = cursor.fetchall()
+
+
+    if id is None: #Estamos en un alta
+        return {'ocupaciones':ocupaciones, 'numeros':numeros,'vehiculos':vehiculos}
     else:
-        consulta = "select id,nombre, apelllidos,dni, id_ocupacion from persona where id =?"
+        consulta = "select id,nombre, apelllidos,dni, id_ocupacion, id_numero from persona where id =?"
         cursor = cnx.execute(consulta,(id,))
         filas = cursor.fetchone()
 
+        # Mis vehículos
+        consulta = f"select id_vehiculo from persona_vh where id_persona = {id}"
+        cursor = cnx.execute(consulta)
+        tmp = cursor.fetchall()
+        mis_vehiculos = []
+        for t in tmp:
+            mis_vehiculos.append(t[0])
+
     cnx.close()
-    return {'datos': filas,'ocupaciones':ocupaciones}
+    return {'datos': filas,
+            'ocupaciones':ocupaciones, 
+            'numeros':numeros,
+            'vehiculos':vehiculos,
+            'mis_vehiculos': mis_vehiculos}
 
 @route('/guardar', method='POST')
 def guardar():
@@ -49,15 +73,37 @@ def guardar():
     dni = request.POST.dni
     id = request.POST.id
     ocupacion = request.POST.ocupacion
+    numero = request.POST.numero
+
+    #Lista de vehículos
+    vehiculos = request.POST.dict['vehiculo']
     
     cnx = sqlite3.connect(BASE_DATOS)
     
     if id =='': #Alta
-        consulta = "insert into persona(nombre, apelllidos,dni, id_ocupacion) values (?,?,?,?)"
-        cnx.execute(consulta,(nombre,apellidos,dni,ocupacion))
+        consulta = "insert into persona(nombre, apelllidos,dni, id_ocupacion, id_numero) values (?,?,?,?,?)"
+        tmp = cnx.execute(consulta,(nombre,apellidos,dni,ocupacion, numero))
+        nuevo_id = tmp.lastrowid
+        # --------------
+        for v in vehiculos:
+            nuevos_vh = f"""insert into persona_vh(id_persona,id_vehiculo) 
+            values({nuevo_id},{v})"""
+            cnx.execute(nuevos_vh)
+        
+
     else: #Actualización
-        consulta = "update persona set nombre = ?, apelllidos = ?, dni =?, id_ocupacion=? where id =?"
-        cnx.execute(consulta,(nombre,apellidos,dni,ocupacion,id))
+        consulta = "update persona set nombre = ?, apelllidos = ?, dni =?, id_ocupacion=?, id_numero=? where id =?"
+        cnx.execute(consulta,(nombre,apellidos,dni,ocupacion,numero,id))
+
+        #Mis vehiculos
+        #Borro todos los vehiculos de una persona e inserto los nuevos
+        consulta = f'delete from persona_vh where id_persona = {id}'
+        cnx.execute(consulta)
+        #---------------
+        for v in vehiculos:
+            nuevos_vh = f"""insert into persona_vh(id_persona,id_vehiculo) 
+            values({id},{v})"""
+            cnx.execute(nuevos_vh)
 
     cnx.commit()
     cnx.close()
