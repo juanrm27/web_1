@@ -7,12 +7,12 @@ BASE_DATOS = os.path.join(os.path.dirname(__file__),'personas.db' )
 
 
 
-@route('/static/<filename>')
+@route('/static/<filename:path>')
 def server_static(filename):
     return static_file(filename,root='./static')
 
 @route('/')
-@jinja2_view('home.html')
+@jinja2_view('home2.html')
 def hola():
     cnx = sqlite3.connect(BASE_DATOS)
     consulta = """SELECT p.id, p.nombre,p.apelllidos ,p.dni ,to2.descripcion,tn.descripcion 
@@ -25,7 +25,7 @@ def hola():
 
 @route('/editar')
 @route('/editar/<id:int>')
-@jinja2_view('formulario.html')
+@jinja2_view('formulario2.html')
 def mi_form(id=None):
     # Ocupaciones
     cnx = sqlite3.connect(BASE_DATOS)
@@ -95,11 +95,11 @@ def guardar():
         consulta = "update persona set nombre = ?, apelllidos = ?, dni =?, id_ocupacion=?, id_numero=? where id =?"
         cnx.execute(consulta,(nombre,apellidos,dni,ocupacion,numero,id))
 
-        #Mis vehiculos
-        #Borro todos los vehiculos de una persona e inserto los nuevos
-        consulta = f'delete from persona_vh where id_persona = {id}'
+        # Mis vehículos
+        #Borro todos los vehículos de una persona e inserto los nuevos
+        consulta = f'delete from persona_vh where id_persona= {id}'
         cnx.execute(consulta)
-        #---------------
+        # --------------
         for v in vehiculos:
             nuevos_vh = f"""insert into persona_vh(id_persona,id_vehiculo) 
             values({id},{v})"""
@@ -119,4 +119,4 @@ def borrar(id):
     redirect('/')
 
 
-run(host= 'localhost',port=8080, debug=True)
+run(host= 'localhost',port=8000, debug=True)
