@@ -92,6 +92,9 @@
           <div class="control">
             <input type="submit" class="button is-success" value="Enviar">
             <a class="button  is-warning" href="/">Cancelar</a>
+            {%if datos%}
+            <a class="button  is-danger" href="/borrar/{{datos[0]}}">Borrar</a>
+            {%endif%}
 
           </div>
         </div>

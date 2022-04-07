@@ -76,7 +76,10 @@ def guardar():
     numero = request.POST.numero
 
     #Lista de vehículos
-    vehiculos = request.POST.dict['vehiculo']
+    if 'vehiculos' in request.POST.dict:
+        vehiculos = request.POST.dict['vehiculo']
+    else:
+        no_vehiculos = True
     
     cnx = sqlite3.connect(BASE_DATOS)
     
@@ -85,10 +88,11 @@ def guardar():
         tmp = cnx.execute(consulta,(nombre,apellidos,dni,ocupacion, numero))
         nuevo_id = tmp.lastrowid
         # --------------
-        for v in vehiculos:
-            nuevos_vh = f"""insert into persona_vh(id_persona,id_vehiculo) 
-            values({nuevo_id},{v})"""
-            cnx.execute(nuevos_vh)
+        if no_vehiculos:
+            for v in vehiculos:
+                nuevos_vh = f"""insert into persona_vh(id_persona,id_vehiculo) 
+                values({nuevo_id},{v})"""
+                cnx.execute(nuevos_vh)
         
 
     else: #Actualización
